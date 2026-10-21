@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>AutoDeal</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f4f8;color:#172033}
+header{background:#101827;color:white;padding:24px 18px}
+header h1{margin:0;font-size:28px}
+header p{color:#c4cede;margin-bottom:0}
+main{padding:18px;max-width:900px;margin:auto}
+.card{background:white;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 9px #1720330c}
+h2{font-size:19px;margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;margin-bottom:5px;color:#526078}
+input,select,button{width:100%;padding:12px;border:1px solid #d5dce6;border-radius:9px;font-size:15px}
+button{background:#176b46;color:white;border:0;font-weight:bold;margin-top:12px}
+button.secondary{background:#e8edf3;color:#172033}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#edf7f1;border-radius:10px;padding:12px}
+.stat strong{display:block;font-size:22px;margin-top:6px}
+.car{border:1px solid #e0e5ec;border-radius:10px;padding:12px;margin-top:10px}
+.profit{color:#167345;font-weight:bold}
+small{color:#657187}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>🚗 AutoDeal</h1>
+<p>Repère les voitures à potentiel dans les Pays de la Loire.</p>
+</header>
+<main>
+<div class="stats">
+<div class="stat">Budget maximum<strong>10 000 €</strong></div>
+<div class="stat">Bénéfice minimum<strong>1 500 €</strong></div>
+</div>
+<section class="card" style="margin-top:16px">
+<h2>Ajouter une annonce</h2>
+<form id="carForm">
+<label for="name">Modèle de la voiture</label>
+<input id="name" required placeholder="Ex. Peugeot 308 1.6 HDi">
+<div class="grid" style="margin-top:12px">
+<div><label for="price">Prix d'achat (€)</label><input id="price" type="number" min="0" required></div>
+<div><label for="resale">Revente estimée (€)</label><input id="resale" type="number" min="0" required></div>
+<div><label for="repairs">Réparations (€)</label><input id="repairs" type="number" min="0" value="0" required></div>
+<div><label for="mileage">Kilométrage</label><input id="mileage" type="number" min="0" required></div>
+<div><label for="expenses">Autres frais (€)</label><input id="expenses" type="number" min="0" value="0" required></div>
+<div><label for="department">Département</label>
+<select id="department"><option>44 - Loire-Atlantique</option><option>49 - Maine-et-Loire</option><option>85 - Vendée</option><option>72 - Sarthe</option><option>53 - Mayenne</option></select>
+</div>
+</div>
+<label for="url" style="margin-top:12px">Lien de l'annonce (facultatif)</label>
+<input id="url" type="url" placeholder="https://...">
+<button type="submit">Calculer et ajouter</button>
+</form>
+</section>
+<section class="card">
+<h2>Annonces enregistrées</h2>
+<p><small>Le bénéfice estimé est indicatif : vérifie l'état, les frais et le prix réel du marché.</small></p>
+<div id="cars"><p>Aucune annonce ajoutée pour le moment.</p></div>
+<button class="secondary" id="clear">Effacer les annonces de cette session</button>
+</section>
+</main>
+<script>
+const cars=[];
+const euro=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
+const form=document.getElementById('carForm');
+form.addEventListener('submit',e=>{
+e.preventDefault();
+const car={
+name:document.getElementById('name').value,
+price:Number(document.getElementById('price').value),
+resale:Number(document.getElementById('resale').value),
+repairs:Number(document.getElementById('repairs').value),
+mileage:Number(document.getElementById('mileage').value),
+expenses:Number(document.getElementById('expenses').value),
+department:document.getElementById('department').value,
+url:document.getElementById('url').value
+};
+car.profit=car.resale-car.price-car.repairs-car.expenses;
+cars.unshift(car);
+render();
+form.reset();
+document.getElementById('repairs').value=0;
+document.getElementById('expenses').value=0;
+});
+function render(){
+const shown=cars.filter(c=>c.price<=10000&&c.profit>=1500);
+document.getElementById('cars').innerHTML=cars.length?cars.map(c=>`
+<div class="car">
+<strong>${escapeHTML(c.name)}</strong><br>
+<small>${escapeHTML(c.department)} · ${c.mileage.toLocaleString('fr-FR')} km</small>
+<p>Achat : ${euro(c.price)} · Revente estimée : ${euro(c.resale)}</p>
+<p>Réparations et autres frais : ${euro(c.repairs+c.expenses)}</p>
+<p class="${c.profit>=1500&&c.price<=10000?'profit':''}">Bénéfice estimé : ${euro(c.profit)}</p>
+<p><small>${c.price<=10000&&c.profit>=1500?'✅ Critères respectés':'⚠️ Ne respecte pas tous les critères'}</small></p>
+${c.url?`<a href="${escapeAttr(c.url)}" target="_blank" rel="noopener">Ouvrir l'annonce</a>`:''}
+</div>`).join(''):'<p>Aucune annonce ajoutée pour le moment.</p>';
+}
+function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeAttr(s){return escapeHTML(s);}
+document.getElementById('clear').addEventListener('click',()=>{cars.length=0;render();});
+</script>
+</body>
+</html>
